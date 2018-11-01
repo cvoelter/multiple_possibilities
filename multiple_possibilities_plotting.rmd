@@ -1,0 +1,128 @@
+---
+title: "plotting_multpos"
+author: "Christoph Voelter"
+date: "November 1, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(ggthemes)
+```
+
+```{r loading data, include = FALSE}
+
+all.data <- read.table(file="Data_multiple future possibilities_Oct2018.txt", header=T, sep="\t")
+
+```
+
+```{r}
+
+plot_individual <- all.data %>%
+  group_by(condition, chimp) %>% 
+  summarize(correct_resp = sum(both_ropes)) 
+
+plot_table=as.data.frame(xyTable(plot_individual$condition,plot_individual$correct_resp))
+
+plot_individual %>% add_count(correct_resp)
+
+ggplot() +
+  geom_jitter( aes(x = plot_table$x, y = plot_table$y,  size = plot_table$number), width = 0,height = .00, alpha = .15)+
+  labs(x="Condition",y="Sum of both ropes pulled")+
+  theme_few() + 
+  ylim(-0.05,12.05)+
+  xlim(0.5,2.5)+
+  guides(alpha = F)+
+  theme(axis.text.y=element_blank(),axis.text.x=element_blank(),axis.ticks.x=element_blank(), axis.ticks.y=element_blank(),strip.text.y = element_text(angle = 180))
+
+
+
+ggplot(
+  data=plot_individual, aes(condition, correct_resp, group = chimp)) +   
+  geom_point(size = 2, colour = "purple") +
+  geom_line(lty=2)+
+  ylim(0,12)+
+  labs(x="Condition",y="Sum of both ropes pulled")+
+  theme_few()
+
+```
+```{r}
+obs1=all.data$Session_01
+
+obs2=xdata$Session_02
+
+par(mar=c(1.5, 3, 1, 0.5), mgp=c(1.8, 0.5, 0))#set margins etc.
+#create empty plot:
+plot(x=1, y=2, xlim=c(0.5, 2.5), ylim=c(0.0, 12), xaxs="i", type="n", las=1, xaxt="n", tcl=-0.25,
+ylab="Both ropes pulled", xlab="", bty="l")
+#add lines connecting observations made for the same individual:
+segments(x0=rep(x=1, n=length(obs1)), x1=rep(x=2, n=length(obs1)), y0=obs1, y1=obs2, lty=2)
+#add points, step 1, get frequency table for obs1:
+xx=table(obs1)
+#step 2, add points:
+points(x=rep(x=1, times=length(xx)), y=as.numeric(names(xx)), cex=0.8*sqrt(xx), pch=19, col="grey")
+xx=table(obs2)#and the same for obs2:
+points(x=rep(x=2, times=length(xx)), y=as.numeric(names(xx)), cex=0.8*sqrt(xx), pch=19, col="grey")
+
+mtext(text=c("Session 1", "Session 2"), side=1, line=0.2, at=c(1, 2))#add labels at x-axis
+
+
+#xx=t.test(obs1, obs2, paired=T)#add result of t-test
+mtext(side=3, line=-0.2, cex=0.75, at=1.5, text=bquote(list(T^"+"==.(round(wilc$T.plus, 2)), N==.(round(wilc$N, 0)),P==.(round(wilc$P, 3)))))
+segments(x0=1.25, x1=1.75, y0=2.1, y1=2.1)
+
+#add legend:
+legend(x="topright", legend=1:11, pch=19, pt.cex=0.8*sqrt(1:15), cex=1.25, bty="n", col="grey")
+
+
+
+
+#line width
+ll=c(
+6,6,6
+,3,4,6
+,1,6,1,
+4,4,6,
+3,3,1,
+4,1)
+
+#concentric circles
+par(mar=c(1.5, 3, 1, 0.5), mgp=c(1.8, 0.5, 0))#set margins etc.
+#create empty plot:
+plot(x=1, y=2, xlim=c(0.5, 2.5), ylim=c(0, 2.1), xaxs="i", type="n", las=1, xaxt="n",yaxt="n", tcl=-0.25,
+ylab="Number of causal button choices", xlab="", bty="l")
+axis(side=2, at=c(0,1,2), las=2)
+#add lines connecting observations made for the same individual:
+segments(x0=rep(x=1, n=length(obs1)), x1=rep(x=2, n=length(obs1)), y0=obs1, y1=obs2, lty=2, lwd=ll)
+#add points, step 1, get frequency table for obs1:
+xx=table(obs1)
+#add white points to cover the lines below the points to be shown later:
+points(x=rep(x=1, times=length(xx)), y=as.numeric(names(xx)), cex=0.8*xx, pch=19, col="white")
+#step 2, add points:
+for(i in 1:length(xx)){#loop through each entry in xx
+for(j in 1:xx[i]){#loop through 1 to the value in xx[i]
+#and draw one point with the resp. diameter at the resp. location (x and y):
+points(x=1, y=as.numeric(names(xx)[i]), cex=0.8*j)
+}
+ }
+xx=table(obs2)#and the same for obs2:
+points(x=rep(x=2, times=length(xx)), y=as.numeric(names(xx)), cex=0.8*xx, pch=19, col="white")
+for(i in 1:length(xx)){
+for(j in 1:xx[i]){
+points(x=2, y=as.numeric(names(xx)[i]), cex=0.8*j)
+}
+ }
+ 
+mtext(side=3, line=-0.2, cex=0.75, at=1.5, text=bquote(list(T^"+"==.(round(wilc$T.plus, 2)), N==.(round(wilc$N, 0)),P==.(round(wilc$P, 3)))))
+segments(x0=1.25, x1=1.75, y0=2.1, y1=2.1)
+
+#add labels at x-axis:
+mtext(text=c("session 1", "session 2"), side=1, line=0.2, at=c(1, 2))
+
+
+savePlot(filename = "causalObs_session", type = "tiff")
+
+
+```

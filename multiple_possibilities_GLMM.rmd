@@ -1,0 +1,121 @@
+---
+title: "multiple_possibilities_GLMM"
+author: "Christoph Voelter"
+date: "November 1, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+library(lme4)
+library(readr)
+library(tidyverse)
+library(sjPlot)
+source("C:/Users/cjv3/R/R scripts/Roger/diagnostic_fcns.r")
+source("C:/Users/cjv3/R/R scripts/Roger/glmm_stability.r")
+source("C:/Users/cjv3/R/R scripts/Roger/boxplotteR.r")
+source("C:/Users/cjv3/R/R scripts/Roger/boot_glmm.r")
+source("C:/Users/cjv3/R/R scripts/Roger/corr_exact.r")
+
+```
+
+## Data import
+
+Preparing code for mixed modeling. 
+
+```{r loading data, include = FALSE}
+
+all.data <- read.table(file="Data_multiple future possibilities_Oct2018.txt", header=T, sep="\t")
+
+```
+
+
+
+## Mixed modeling with all relevant varaibles predicting accuracy
+
+``` {r mixed modeling, error=TRUE}
+
+# centering variables for modeling
+
+model.data <- all.data %>%
+  mutate(z.trial = scale(trial, scale = T, center = T),
+         condition = relevel(condition, ref = "control"))
+
+
+## code to run the model
+mm.1 <- glmer(both_ropes ~ condition + z.trial + 
+               (1 + condition + z.trial |chimp)
+             , data = model.data
+             , family = binomial
+             #, control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
+)
+
+## CIs
+#confint(mm.1, method='profile')
+#boot.res=boot.glmm(model.res=mm.1, excl.warnings=T,nboots=1000, para=F)
+#round(boot.res,3)
+
+## save model output
+saveRDS(mm.1, "multpos_model.rds")
+```
+
+####Null model	 
+```{r}	 
+mm.1.null <- glmer(both_ropes ~ 1 + 
+               (1 + condition + z.trial |chimp)
+             , data = model.data
+             , family = binomial
+            # , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
+)
+
+```
+####Full-null model comparison
+```{r}	 
+anova(mm.1, mm.1.null, test="Chisq")
+```
+####Model output
+  + Coefficients
+```{r}
+round(summary(mm.1)$coefficients, 3)
+```
+  + Individual predictors: likelihood ratio tests  
+Drop1: P values for the individual effects were based on likelihood ratio tests comparing the full with respective reduced models (Barr et al., 2013; R function drop1 with argument 'test' set to "Chisq"). 
+```{r}
+xdrop1=drop1(mm.1, test="Chisq")
+round(xdrop1,3)
+```
+
+
+## check for colinearity in the previous model.
+
+```{R}
+library (car)
+
+col.mm1 <- glm(both_ropes ~ condition + z.trial 
+             , data = model.data
+             , family = binomial
+)
+vif(col.mm1)
+#no problem
+```
+
+
+`````` {r plot mixed modeling, error=TRUE}
+
+### Model plotting
+
+plot_model(mm.1, type='est') 
+plot_model(mm.1, type='re') 
+## sjp.lmer will be deprecated eventually, and plot_model can be used to precisely obtain which plots of the GLMM one wishes to examine.
+sjp.lmer(mm.1)
+
+
+
+```
+
+
+
+
+
