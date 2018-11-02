@@ -21,8 +21,8 @@ source("C:/Users/cjv3/R/R scripts/Roger/glmm_stability.r")
 source("C:/Users/cjv3/R/R scripts/Roger/boxplotteR.r")
 source("C:/Users/cjv3/R/R scripts/Roger/boot_glmm.r")
 source("C:/Users/cjv3/R/R scripts/Roger/corr_exact.r")
-load("mm1_mult_poss.RData")
-
+load(file ="mm1_mult_poss.RData")
+#readRDS(file ="multpos_model.rds")
 ```
 
 ```{r loading data, include = FALSE}
@@ -30,6 +30,11 @@ load("mm1_mult_poss.RData")
 all.data <- read.table(file="Data_multiple future possibilities_Oct2018.txt", header=T, sep="\t")
 
 ```
+
+
+##Summary
+Both the paired-samples t-test and a mixed model show a significant effect for condition. Obviously, there is a lot of uncertainty regarding the strength of the effect of condition given the small sample size.
+
 
 ##Plotting data
 ```{r error=FALSE}
@@ -51,10 +56,7 @@ ggplot(
 
 ```
 
-
-###Summary
-Both the paired-samples t-test and a mixed model show a significant effect for condition. Obviously, there is a lot of uncertainty regarding the strength of the effect of condition given the small sample size.
-
+\pagebreak  
 
 ##Paired-sample t-test
 ```{r}
@@ -126,9 +128,9 @@ round(xdrop1,3)
 ```
 
 
-## check for colinearity in the previous model.
+#### check for colinearity in the previous model.
 
-```{R include=FALSE}
+```{R echo=FALSE}
 library (car)
 
 col.mm1 <- glm(both_ropes ~ condition + z.trial 
@@ -140,16 +142,11 @@ vif(col.mm1)
 ```
 -> no collinearity
 
+####Model output
 `````` {r plot mixed modeling, error=TRUE}
-
-### Model plotting
 
 plot_model(mm.1, type='est') 
 plot_model(mm.1, type='re') 
-
-
-
-
 ```
 
 
