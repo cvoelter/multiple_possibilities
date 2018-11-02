@@ -2,7 +2,9 @@
 title: "multiple_possibilities_GLMM"
 author: "Christoph Voelter"
 date: "November 1, 2018"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -13,36 +15,68 @@ library(lme4)
 library(readr)
 library(tidyverse)
 library(sjPlot)
+library(ggthemes)
 source("C:/Users/cjv3/R/R scripts/Roger/diagnostic_fcns.r")
 source("C:/Users/cjv3/R/R scripts/Roger/glmm_stability.r")
 source("C:/Users/cjv3/R/R scripts/Roger/boxplotteR.r")
 source("C:/Users/cjv3/R/R scripts/Roger/boot_glmm.r")
 source("C:/Users/cjv3/R/R scripts/Roger/corr_exact.r")
+load("mm1_mult_poss.RData")
 
 ```
 
-## Data import
-
-Preparing code for mixed modeling. 
-
 ```{r loading data, include = FALSE}
-
+#Preparing code for mixed modeling. 
 all.data <- read.table(file="Data_multiple future possibilities_Oct2018.txt", header=T, sep="\t")
 
 ```
 
+##Plotting data
+```{r error=FALSE}
+
+plot_individual <- all.data %>%
+  group_by(condition, chimp) %>% 
+  summarize(correct_resp = sum(both_ropes)) 
+
+plot_ind2 <- plot_individual %>% add_count(correct_resp)
+ggplot(
+  data=plot_ind2, aes(condition, correct_resp, group = chimp)) +   
+  geom_point(size = plot_ind2$n, colour = "purple") +
+  geom_line(lty=2)+
+  #ylim(0,12)+
+  labs(x="Condition",y="Sum of both ropes pulled")+
+  theme_few()+
+  scale_y_continuous(breaks=seq(0,12,2))
 
 
-## Mixed modeling with all relevant varaibles predicting accuracy
+```
+
+
+###Summary
+Both the paired-samples t-test and a mixed model show a significant effect for condition. Obviously, there is a lot of uncertainty regarding the strength of the effect of condition given the small sample size.
+
+
+##Paired-sample t-test
+```{r}
+
+contr_data <- plot_individual %>%  
+  filter(condition == "control")
+
+exp_data <- plot_individual %>%  
+  filter(condition == "test")
+
+
+t.test(exp_data$correct_resp, contr_data$correct_resp, paired = TRUE, alternative = "two.sided")
+```
+
+## GLMM
 
 ``` {r mixed modeling, error=TRUE}
 
 # centering variables for modeling
-
-model.data <- all.data %>%
+model.data <- all.data %>% 
   mutate(z.trial = scale(trial, scale = T, center = T),
          condition = relevel(condition, ref = "control"))
-
 
 ## code to run the model
 mm.1 <- glmer(both_ropes ~ condition + z.trial + 
@@ -52,13 +86,17 @@ mm.1 <- glmer(both_ropes ~ condition + z.trial +
              #, control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
 )
 
-## CIs
-#confint(mm.1, method='profile')
-#boot.res=boot.glmm(model.res=mm.1, excl.warnings=T,nboots=1000, para=F)
-#round(boot.res,3)
-
 ## save model output
-saveRDS(mm.1, "multpos_model.rds")
+#saveRDS(mm.1, "multpos_model.rds")
+#save.image("mm1_mult_poss.RData")
+```
+####Confidence intervals
+Confidence intervals for the binomial models were derived using the function bootMer of the R package lme4, using 1,000 parametric bootstraps and bootstrapping over the random effects.
+
+```{R}		
+#boot.res=boot.glmm(model.res=mm.1, excl.warnings=T,nboots=1000, para=F)
+#saveRDS(mm.1, "multpos_model.rds")
+round(boot.res,3)
 ```
 
 ####Null model	 
@@ -90,7 +128,7 @@ round(xdrop1,3)
 
 ## check for colinearity in the previous model.
 
-```{R}
+```{R include=FALSE}
 library (car)
 
 col.mm1 <- glm(both_ropes ~ condition + z.trial 
@@ -100,7 +138,7 @@ col.mm1 <- glm(both_ropes ~ condition + z.trial
 vif(col.mm1)
 #no problem
 ```
-
+-> no collinearity
 
 `````` {r plot mixed modeling, error=TRUE}
 
@@ -108,8 +146,7 @@ vif(col.mm1)
 
 plot_model(mm.1, type='est') 
 plot_model(mm.1, type='re') 
-## sjp.lmer will be deprecated eventually, and plot_model can be used to precisely obtain which plots of the GLMM one wishes to examine.
-sjp.lmer(mm.1)
+
 
 
 
