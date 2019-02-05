@@ -16,11 +16,11 @@ library(readr)
 library(tidyverse)
 library(sjPlot)
 library(ggthemes)
-source("C:/Users/cjv3/R/R scripts/Roger/diagnostic_fcns.r")
-source("C:/Users/cjv3/R/R scripts/Roger/glmm_stability.r")
-source("C:/Users/cjv3/R/R scripts/Roger/boxplotteR.r")
-source("C:/Users/cjv3/R/R scripts/Roger/boot_glmm.r")
-source("C:/Users/cjv3/R/R scripts/Roger/corr_exact.r")
+source("../../R scripts/Roger/diagnostic_fcns.r")
+source("../../R scripts/Roger/glmm_stability.r")
+source("../../R scripts/Roger/boxplotteR.r")
+source("../../R scripts/Roger/boot_glmm.r")
+source("../../R scripts/Roger/corr_exact.r")
 load(file ="mm1_mult_poss.RData")
 #readRDS(file ="multpos_model.rds")
 ```
@@ -78,14 +78,15 @@ t.test(exp_data$correct_resp, contr_data$correct_resp, paired = TRUE, alternativ
 # centering variables for modeling
 model.data <- all.data %>% 
   mutate(z.trial = scale(trial, scale = T, center = T),
+         z.session = scale(session, scale=T, center=T),
          condition = relevel(condition, ref = "control"))
 
 ## code to run the model
-mm.1 <- glmer(both_ropes ~ condition + z.trial + 
-               (1 + condition + z.trial |chimp)
+mm.1 <- glmer(both_ropes ~ condition + z.trial + z.session+
+               (1 + condition+z.trial |chimp)
              , data = model.data
              , family = binomial
-             #, control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
+            , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
 )
 
 ## save model output
@@ -104,7 +105,7 @@ round(boot.res,3)
 ####Null model	 
 ```{r}	 
 mm.1.null <- glmer(both_ropes ~ 1 + 
-               (1 + condition + z.trial |chimp)
+               (1 + condition + z.trial +z.session|chimp)
              , data = model.data
              , family = binomial
             # , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
