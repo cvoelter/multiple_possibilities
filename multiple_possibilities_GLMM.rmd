@@ -1,7 +1,7 @@
 ---
 title: "multiple_possibilities_GLMM"
 author: "Christoph Voelter"
-date: "November 1, 2018"
+date: "April 04, 2019"
 output:
   pdf_document: default
   html_document: default
@@ -10,7 +10,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-
+library (car)
 library(lme4)
 library(readr)
 library(tidyverse)
@@ -22,22 +22,22 @@ source("../../R scripts/Roger/boxplotteR.r")
 source("../../R scripts/Roger/boot_glmm.r")
 source("../../R scripts/Roger/corr_exact.r")
 load(file ="mm1_mult_poss.RData")
-#readRDS(file ="multpos_model.rds")
+readRDS(file ="multpos_model.rds")
 ```
 
 ```{r loading data, include = FALSE}
 #Preparing code for mixed modeling. 
-all.data <- read.table(file="Data_multiple future possibilities_Oct2018.txt", header=T, sep="\t")
+all.data <- read.table(file="Data_multiple future possibilities_Apr2019.txt", header=T, sep="\t")
 
 ```
 
 
 ##Summary
-Both the paired-samples t-test and a mixed model show a significant effect for condition. Obviously, there is a lot of uncertainty regarding the strength of the effect of condition given the small sample size.
+Both the paired-samples t-test and a mixed model show a significant effect for condition. There was no significant interaction between session and condition. 
 
 
 ##Plotting data
-```{r error=FALSE}
+```{r error=FALSE, echo=FALSE}
 
 plot_individual <- all.data %>%
   group_by(condition, chimp) %>% 
@@ -73,6 +73,8 @@ t.test(exp_data$correct_resp, contr_data$correct_resp, paired = TRUE, alternativ
 
 ## GLMM
 
+###GLMM 01 with session * condition interaction
+
 ``` {r mixed modeling, error=TRUE}
 
 # centering variables for modeling
@@ -82,13 +84,15 @@ model.data <- all.data %>%
          condition = relevel(condition, ref = "control"))
 
 ## code to run the model
-mm.1 <- glmer(both_ropes ~ condition + z.trial + z.session+
-               (1 + condition+z.trial |chimp)
+mm.1 <- glmer(both_ropes ~ condition*z.session + z.trial + 
+               (1+ z.session|chimp)
              , data = model.data
              , family = binomial
             , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
 )
+```
 
+```{r include=FALSE}
 ## save model output
 #saveRDS(mm.1, "multpos_model.rds")
 #save.image("mm1_mult_poss.RData")
@@ -96,19 +100,22 @@ mm.1 <- glmer(both_ropes ~ condition + z.trial + z.session+
 ####Confidence intervals
 Confidence intervals for the binomial models were derived using the function bootMer of the R package lme4, using 1,000 parametric bootstraps and bootstrapping over the random effects.
 
-```{R}		
-#boot.res=boot.glmm(model.res=mm.1, excl.warnings=T,nboots=1000, para=F)
-#saveRDS(mm.1, "multpos_model.rds")
-round(boot.res,3)
+```{R eval=FALSE}		
+boot.res=boot.glmm(model.res=mm.1, excl.warnings=T,nboots=1000, para=F)
+saveRDS(boot.res, "multpos_model.rds")
+```
+
+```{R echo=FALSE}		
+round(readRDS(file ="multpos_model.rds"), 3)
 ```
 
 ####Null model	 
 ```{r}	 
 mm.1.null <- glmer(both_ropes ~ 1 + 
-               (1 + condition + z.trial +z.session|chimp)
+               (1+z.session|chimp)
              , data = model.data
              , family = binomial
-            # , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
+            , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
 )
 
 ```
@@ -128,13 +135,73 @@ xdrop1=drop1(mm.1, test="Chisq")
 round(xdrop1,3)
 ```
 
+###GLMM02 without the interaction
+
+
+``` {r mixed modeling2, error=TRUE}
+
+mm.2 <- glmer(both_ropes ~ condition+z.session + z.trial + 
+               (1|chimp)
+             , data = model.data
+             , family = binomial
+            , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
+)
+```
+
+
+
+``` {r include=FALSE}
+## save model output
+#saveRDS(mm.2, "multpos_model.rds")
+#save.image("mm2_mult_poss.RData")
+```
+
+####Confidence intervals
+Confidence intervals for the binomial models were derived using the function bootMer of the R package lme4, using 1,000 parametric bootstraps and bootstrapping over the random effects.
+
+```{R eval=FALSE}		
+boot.res2=boot.glmm(model.res=mm.2, excl.warnings=T,nboots=1000, para=F)
+saveRDS(boot.res2, "multpos_model2.rds")
+```
+
+```{R echo=FALSE}		
+round(readRDS(file ="multpos_model2.rds"), 3)
+```
+
+####Null model	 
+```{r}	 
+mm.2.null <- glmer(both_ropes ~ 1 + 
+               (1|chimp)
+             , data = model.data
+             , family = binomial
+            , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
+)
+
+```
+####Full-null model comparison
+```{r}	 
+anova(mm.2, mm.2.null, test="Chisq")
+```
+####Model output
+  + Coefficients
+```{r}
+round(summary(mm.2)$coefficients, 3)
+```
+  + Individual predictors: likelihood ratio tests  
+Drop1: P values for the individual effects were based on likelihood ratio tests comparing the full with respective reduced models (Barr et al., 2013; R function drop1 with argument 'test' set to "Chisq"). 
+```{r}
+xdrop1=drop1(mm.2, test="Chisq")
+round(xdrop1,3)
+```
+
+
+
 
 #### check for colinearity in the previous model.
 
-```{R echo=FALSE}
-library (car)
+```{R echo=FALSE, error=FALSE, warning=FALSE}
 
-col.mm1 <- glm(both_ropes ~ condition + z.trial 
+col.mm1 <- glm(both_ropes ~ condition + z.trial +z.session
              , data = model.data
              , family = binomial
 )
@@ -144,10 +211,10 @@ vif(col.mm1)
 -> no collinearity
 
 ####Model output
-`````` {r plot mixed modeling, error=TRUE}
+`````` {r plot mixed modeling, error=TRUE, warning=FALSE}
 
-plot_model(mm.1, type='est') 
-plot_model(mm.1, type='re') 
+plot_model(mm.2, type='est') 
+plot_model(mm.2, type='re') 
 ```
 
 
