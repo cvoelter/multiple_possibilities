@@ -34,6 +34,16 @@ str(all.data)
 
 ```
 
+```{r eval=FALSE}
+
+capFirst <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "")
+}
+
+all.data$chimp <- capFirst(all.data$chimp)
+str(all.data)
+```
+
 
 ##Summary
 Both the paired-samples t-test and a mixed model show a significant effect for condition. There was no significant interaction between session and condition. 
@@ -61,7 +71,7 @@ ggplot(
 
 
 
-```{r}
+```{r error=FALSE, echo=FALSE}
 
 theme_set(theme_classic())
 
@@ -106,7 +116,7 @@ ggplot(all.data, aes(x=factor(chimp), y=factor(trial_total), group=pull_action))
          shape = guide_legend(order = 1))+
   coord_flip()
 
-ggsave("multiple possibilities_plot.pdf", width = 18, height = 10, units = "cm")
+#ggsave("multiple possibilities_plot.pdf", width = 18, height = 10, units = "cm")
 
 ```
 
@@ -143,7 +153,7 @@ model.data <- all.data %>%
 
 ## code to run the model
 mm.1 <- glmer(both_ropes ~ condition*z.session + z.trial + 
-               (1+ z.session|chimp)
+               (1+ z.session*condition+z.trial|chimp)
              , data = model.data
              , family = binomial
             , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
@@ -159,7 +169,7 @@ mm.1 <- glmer(both_ropes ~ condition*z.session + z.trial +
 Confidence intervals for the binomial models were derived using the function bootMer of the R package lme4, using 1,000 parametric bootstraps and bootstrapping over the random effects.
 
 ```{R eval=FALSE}		
-boot.res=boot.glmm(model.res=mm.1, excl.warnings=T,nboots=1000, para=F)
+boot.res=boot.glmm(model.res=mm.1, excl.warnings=T,nboots=1000, para=T)
 saveRDS(boot.res, "multpos_model.rds")
 ```
 
@@ -170,7 +180,7 @@ round(readRDS(file ="multpos_model.rds"), 3)
 ####Null model	 
 ```{r}	 
 mm.1.null <- glmer(both_ropes ~ 1 + 
-               (1+z.session|chimp)
+                (1+ z.session*condition+z.trial|chimp)
              , data = model.data
              , family = binomial
             , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
@@ -199,7 +209,7 @@ round(xdrop1,3)
 ``` {r mixed modeling2, error=TRUE}
 
 mm.2 <- glmer(both_ropes ~ condition+z.session + z.trial + 
-               (1|chimp)
+               (1+ z.session+condition+z.trial|chimp)
              , data = model.data
              , family = binomial
             , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
@@ -218,7 +228,7 @@ mm.2 <- glmer(both_ropes ~ condition+z.session + z.trial +
 Confidence intervals for the binomial models were derived using the function bootMer of the R package lme4, using 1,000 parametric bootstraps and bootstrapping over the random effects.
 
 ```{R eval=FALSE}		
-boot.res2=boot.glmm(model.res=mm.2, excl.warnings=T,nboots=1000, para=F)
+boot.res2=boot.glmm(model.res=mm.2, excl.warnings=T,nboots=1000, para=T)
 saveRDS(boot.res2, "multpos_model2.rds")
 ```
 
@@ -229,7 +239,7 @@ round(readRDS(file ="multpos_model2.rds"), 3)
 ####Null model	 
 ```{r}	 
 mm.2.null <- glmer(both_ropes ~ 1 + 
-               (1|chimp)
+               (1+ z.session+condition+z.trial|chimp)
              , data = model.data
              , family = binomial
             , control=glmerControl(optimizer="bobyqa",optCtrl=list(maxfun=2e5))
