@@ -111,12 +111,12 @@ ggplot(all.data, aes(x=factor(chimp), y=factor(trial_total), group=pull_action))
   geom_hline(yintercept=6.5, linetype="dashed", "black", size=0.75)+
   geom_hline(yintercept=18.5, linetype="dashed", "black", size=0.75)+
  # scale_x_discrete(name ="Chimp ID")+
-  scale_y_discrete(breaks=c(3,12,22),labels=c("Control 1", "Test", "Control 2"))+ #name= "Condition",
+  scale_y_discrete(breaks=c(3,12,22),labels=c("Transparent 1", "Opaque", "Transparent 2"))+ #name= "Condition",
   guides(color = guide_legend(order = 2),
          shape = guide_legend(order = 1))+
   coord_flip()
 
-#ggsave("multiple possibilities_plot.pdf", width = 18, height = 10, units = "cm")
+ggsave("multiple possibilities_plot.tiff", width = 18, height = 10, units = "cm")
 
 ```
 
